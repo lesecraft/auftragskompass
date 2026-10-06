@@ -1,0 +1,754 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1A2945">
+<meta name="color-scheme" content="light dark">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Kompass">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<style>
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+</style>
+<title>Auftragskompass</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600&display=swap">
+<style>
+/* Layout: dunkle Kopfleiste, darunter ein Board im Stil von MeisterTask.
+   Eine Spalte pro fester Kunde, eine für Sonstige Projekte. Oben die Hochrechnung. */
+:root {
+  --bg: #EDF1F6;
+  --surface: #FFFFFF;
+  --col: #E1E7EF;
+  --fg: #16233A;
+  --muted: #5A6A82;
+  --line: #D3DBE6;
+  --accent: #1F7AE0;
+  --accent-ink: #FFFFFF;
+  --accent-soft: #E6F0FD;
+  --nav: #1A2945;
+  --nav-fg: #F2F6FC;
+  --nav-muted: #A6B5CE;
+  --good: #168A5B;
+  --good-soft: #DDF3E8;
+  --warn: #B86A12;
+  --warn-soft: #FBEBD6;
+  --shadow: 0 1px 2px rgba(22, 35, 58, .10), 0 0 0 1px rgba(22, 35, 58, .04);
+  --font-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Figtree", "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0F1624; --surface: #1B2639; --col: #151F31; --fg: #E5EBF5; --muted: #93A2BA;
+    --line: #2B3A54; --accent: #4D9CF6; --accent-ink: #08111F; --accent-soft: #1D3250;
+    --nav: #0A111E; --nav-fg: #EEF3FB; --nav-muted: #8FA0BB;
+    --good: #3CC48D; --good-soft: #14392C; --warn: #EBA252; --warn-soft: #3C2B14;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 0 0 1px rgba(255, 255, 255, .04);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0F1624; --surface: #1B2639; --col: #151F31; --fg: #E5EBF5; --muted: #93A2BA;
+  --line: #2B3A54; --accent: #4D9CF6; --accent-ink: #08111F; --accent-soft: #1D3250;
+  --nav: #0A111E; --nav-fg: #EEF3FB; --nav-muted: #8FA0BB;
+  --good: #3CC48D; --good-soft: #14392C; --warn: #EBA252; --warn-soft: #3C2B14;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 0 0 1px rgba(255, 255, 255, .04);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--fg);
+  font-family: var(--font-body); font-size: 15px; line-height: 1.45;
+  margin: 0; min-height: 100%;
+}
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.num { font-variant-numeric: tabular-nums; }
+
+/* Kopfleiste */
+.top { background: var(--nav); color: var(--nav-fg); padding-block: 12px; padding-inline: 16px; position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; }
+.top-in { max-width: 1400px; margin: 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; }
+.brand { font-family: var(--font-display); font-weight: 700; font-size: 20px; letter-spacing: -.01em; margin-right: auto; display: flex; align-items: center; gap: 10px; }
+.brand svg { flex: none; }
+.seg { display: inline-flex; background: rgba(255,255,255,.10); border-radius: 8px; padding: 3px; gap: 2px; }
+.seg button { border: 0; background: transparent; color: var(--nav-muted); padding: 6px 16px; border-radius: 6px; font-weight: 600; }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--fg); }
+.sync { font-size: 12px; color: var(--nav-muted); min-width: 0; }
+.top-rest { font-weight: 600; font-size: 13px; background: rgba(255,255,255,.12); border-radius: 99px; padding: 4px 12px; white-space: nowrap; }
+.top-rest.ok { color: #7BE0B0; }
+.top-rest:empty { display: none; }
+.ghost { border: 1px solid rgba(255,255,255,.22); background: transparent; color: var(--nav-fg); border-radius: 8px; padding: 6px 12px; display: inline-flex; align-items: center; gap: 8px; font-weight: 500; }
+.ghost:hover { background: rgba(255,255,255,.10); }
+
+.wrap { max-width: 1400px; margin: 0 auto; padding-block: 20px 56px; padding-inline: 16px; display: flex; flex-direction: column; gap: 18px; }
+
+/* Zeitraum */
+.period { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.period h1 { font-family: var(--font-display); font-size: 24px; margin: 0; letter-spacing: -.01em; font-weight: 700; }
+.period .range { color: var(--muted); }
+.period .nav { margin-left: auto; display: flex; gap: 6px; }
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 6px 12px; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; gap: 6px; box-shadow: var(--shadow); }
+.btn:hover { border-color: var(--accent); }
+.btn.sq { width: 36px; padding: 6px 0; }
+
+/* Hochrechnung */
+.hero { background: var(--surface); border-radius: 12px; box-shadow: var(--shadow); padding: 20px; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 20px 32px; }
+.eyebrow { margin: 0 0 4px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.big { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: clamp(34px, 7vw, 52px); line-height: 1.05; letter-spacing: -.02em; }
+.big.ok { color: var(--good); }
+.bar { height: 10px; background: var(--col); border-radius: 99px; overflow: hidden; margin: 14px 0 8px; }
+.bar span { display: block; height: 100%; background: var(--accent); border-radius: 99px; transition: width .35s ease; }
+.bar.ok span { background: var(--good); }
+.sub { margin: 0; color: var(--muted); font-size: 13.5px; }
+.sub + .sub { margin-top: 2px; }
+.needs { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
+.need { background: var(--bg); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; min-width: 0; }
+.need b { font-family: var(--font-display); font-size: 30px; line-height: 1.05; font-weight: 700; }
+.need .nm { font-weight: 600; overflow-wrap: anywhere; }
+.need small { color: var(--muted); }
+.covered { margin: 0; padding: 12px 14px; border-radius: 10px; background: var(--good-soft); color: var(--good); font-weight: 600; }
+.hint { background: var(--warn-soft); color: var(--fg); border-radius: 12px; padding: 12px 16px; display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; }
+.hint p { margin: 0; flex: 1 1 260px; }
+
+/* Board */
+.board { display: grid; grid-template-columns: repeat(auto-fill, minmax(268px, 1fr)); gap: 14px; align-items: start; }
+.cols { display: contents; }
+.col { --c: #6B7A90; --ink: #FFFFFF; background: var(--col); background: color-mix(in srgb, var(--c) 13%, var(--col)); border-radius: 12px; padding: 10px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.col-h { display: flex; align-items: center; gap: 8px; background: var(--c); color: var(--ink); border-radius: 8px; padding: 9px 12px; }
+.col-h h2 { margin: 0; font-family: var(--font-display); font-size: 16px; font-weight: 700; overflow-wrap: anywhere; }
+.dot { width: 10px; height: 10px; border-radius: 50%; flex: none; display: inline-block; margin-right: 6px; }
+.count { margin-left: auto; font-size: 12px; font-weight: 600; background: color-mix(in srgb, var(--ink) 20%, transparent); color: var(--ink); border-radius: 99px; padding: 1px 9px; }
+.col-sum { margin: -4px 0 0; font-size: 13px; color: var(--muted); }
+.add { border: 2px solid var(--c); border-radius: 9px; background: var(--surface); color: var(--fg); padding: 9px 14px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.add:hover { background: var(--c); color: var(--ink); }
+.cl-name { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 9px 10px; font-size: 16px; min-width: 0; width: 100%; }
+.add:active { transform: translateY(1px); }
+.cards { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.card { background: var(--surface); border-radius: 9px; box-shadow: var(--shadow); padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.card-top { display: flex; align-items: flex-start; gap: 8px; }
+.cname { flex: 1 1 auto; min-width: 0; border: 0; border-bottom: 1px dashed var(--line); background: transparent; font-weight: 600; padding: 2px 0; border-radius: 0; }
+.cname::placeholder { color: var(--muted); font-weight: 400; }
+.amt { margin-left: auto; font-family: var(--font-display); font-weight: 700; font-size: 18px; white-space: nowrap; }
+.x { border: 0; background: transparent; color: var(--muted); width: 26px; height: 26px; border-radius: 6px; display: grid; place-items: center; flex: none; }
+.x:hover { background: var(--bg); color: var(--fg); }
+.card-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font-size: 12.5px; color: var(--muted); }
+.empty { margin: 0; padding: 14px 10px; text-align: center; color: var(--muted); font-size: 13px; border: 1px dashed var(--line); border-radius: 9px; }
+
+.cname-btn { flex: 1 1 auto; min-width: 0; text-align: left; border: 0; background: transparent; font-weight: 600; padding: 2px 6px; margin-left: -6px; border-radius: 6px; overflow-wrap: anywhere; color: var(--fg); }
+.cname-btn:hover, .datebtn:hover { background: var(--bg); }
+.datebtn { position: relative; display: inline-flex; align-items: center; padding: 3px 6px; margin-left: -6px; border-radius: 6px; cursor: pointer; }
+.date-hid { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; border: 0; padding: 0; }
+
+/* Formular Sonstige */
+.free-form { display: flex; flex-direction: column; gap: 8px; background: var(--surface); padding: 10px; border-radius: 9px; box-shadow: var(--shadow); }
+.field { display: flex; flex-direction: column; gap: 3px; }
+.field label { font-size: 12px; font-weight: 600; color: var(--muted); }
+.field input { border: 1px solid var(--line); background: var(--bg); border-radius: 7px; padding: 8px 10px; min-width: 0; width: 100%; font-size: 16px; }
+.preview { margin: 0; font-size: 13px; color: var(--muted); min-height: 1.4em; }
+.preview b { color: var(--fg); }
+
+/* Einstellungen */
+.panel { background: var(--surface); border-radius: 12px; box-shadow: var(--shadow); padding: 20px; display: flex; flex-direction: column; gap: 18px; }
+.panel h2 { margin: 0; font-family: var(--font-display); font-size: 18px; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; }
+.suffix { position: relative; }
+.suffix input { padding-right: 34px; text-align: right; }
+.suffix::after { content: attr(data-s); position: absolute; right: 11px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+.clients { display: flex; flex-direction: column; gap: 10px; }
+.crow { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) auto auto; gap: 10px; align-items: end; }
+.chk { display: flex; align-items: center; gap: 8px; font-size: 13px; padding-bottom: 9px; white-space: nowrap; }
+.chk input { width: 18px; height: 18px; accent-color: var(--accent); }
+.note { margin: 0; font-size: 13px; color: var(--muted); }
+.row-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.danger { color: var(--warn); }
+
+.swatches { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; }
+.sw { width: 30px; height: 30px; border-radius: 50%; border: 3px solid var(--surface); box-shadow: 0 0 0 1px var(--line); padding: 0; }
+.sw[aria-checked="true"] { box-shadow: 0 0 0 2px var(--fg); }
+
+.sync-box { display: flex; flex-direction: column; gap: 10px; }
+
+/* Hinweis löschen */
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); background: var(--nav); color: var(--nav-fg); border-radius: 10px; padding: 10px 14px; display: flex; align-items: center; gap: 14px; box-shadow: 0 6px 24px rgba(0,0,0,.28); max-width: calc(100% - 32px); z-index: 10; }
+.toast button { border: 0; background: transparent; color: #7DB8FF; font-weight: 600; padding: 2px 4px; }
+
+@media (max-width: 760px) {
+  .hero { grid-template-columns: minmax(0, 1fr); }
+  .period .nav { margin-left: 0; }
+  .crow { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .crow .chk { grid-column: 1; }
+  .crow .del { grid-column: 2; justify-self: end; }
+}
+@media (pointer: coarse) {
+  .btn, .ghost, .add { min-height: 44px; }
+  .seg button { min-height: 38px; }
+  .x { width: 40px; height: 40px; }
+  .sw { width: 36px; height: 36px; }
+  .cname, .cname-btn, .datebtn { min-height: 40px; }
+}
+@media (max-width: 560px) {
+  .top { padding-block: 8px; }
+  .top-in { gap: 8px 10px; flex-wrap: nowrap; }
+  .bt, .lbl, .sync { display: none; }
+  .brand { margin-right: 0; }
+  .top-rest { margin-left: auto; }
+  .period h1 { font-size: 21px; }
+}
+@media (prefers-reduced-motion: reduce) { .bar span { transition: none; } }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="top-in">
+    <div class="brand">
+      <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><circle cx="13" cy="13" r="11" fill="none" stroke="currentColor" stroke-width="2"/><path d="M13 5.5 L16 13 L13 20.5 L10 13 Z" fill="currentColor"/></svg>
+      <span class="bt">Auftragskompass</span>
+    </div>
+    <div class="seg" role="group" aria-label="Ansicht">
+      <button id="m-week" type="button" data-act="mode" data-mode="week" aria-pressed="true">Woche</button>
+      <button id="m-month" type="button" data-act="mode" data-mode="month" aria-pressed="false">Monat</button>
+    </div>
+    <span class="sync" id="sync" role="status"></span>
+    <span class="top-rest num" id="top-rest"></span>
+    <button class="ghost" id="btn-settings" type="button" data-act="settings" aria-expanded="false" aria-label="Einstellungen">
+      <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4h7M13 4h1M2 12h1M7 12h7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="11" cy="4" r="2" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="5" cy="12" r="2" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+      <span class="lbl">Einstellungen</span>
+    </button>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="period" aria-label="Zeitraum">
+    <h1 id="p-title"></h1>
+    <span class="range" id="p-range"></span>
+    <div class="nav">
+      <button class="btn sq" type="button" data-act="prev" aria-label="Zurück"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M9 2 4 7l5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <button class="btn" type="button" data-act="today" id="btn-today">Heute</button>
+      <button class="btn sq" type="button" data-act="next" aria-label="Weiter"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="m5 2 5 5-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    </div>
+  </section>
+
+  <div class="hint" id="example-hint" hidden>
+    <p><b>Beispieldaten.</b> Fixkosten, Kundennamen und Preise sind Platzhalter. Trage deine eigenen Werte in den Einstellungen ein.</p>
+    <button class="btn" type="button" data-act="settings-open">Werte eintragen</button>
+  </div>
+
+  <div class="hint" id="signin-hint" hidden>
+    <p><b>Nicht angemeldet.</b> Melde dich an, damit sich deine Daten zwischen Mac und Pixel abgleichen.</p>
+    <button class="btn" type="button" data-act="signin">Mit Google anmelden</button>
+  </div>
+
+  <section class="panel" id="settings" hidden aria-label="Einstellungen"></section>
+
+  <section class="hero" id="hero" aria-live="polite"></section>
+
+  <section class="board" aria-label="Aufträge">
+    <div class="cols" id="cols"></div>
+    <section class="col" id="free-col" style="--c:#6B7A90;--ink:#FFFFFF">
+      <div class="col-h"><h2>Sonstige Projekte</h2><span class="count num" id="free-count">0</span></div>
+      <p class="col-sum num" id="free-sum"></p>
+      <form class="free-form" id="free-form" autocomplete="off">
+        <div class="field"><label for="fr-label">Projekt (optional)</label><input id="fr-label" type="text" placeholder="z. B. Imagefilm Schnitt" maxlength="60"></div>
+        <div class="field"><label for="fr-amt">Summe vor Steuer</label><div class="suffix" data-s="€"><input id="fr-amt" class="num" type="text" inputmode="decimal" placeholder="0" required></div></div>
+        <p class="preview num" id="fr-prev"></p>
+        <button class="add" type="submit"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M7 2v10M2 7h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Projekt hinzufügen</button>
+      </form>
+      <ul class="cards" id="free-list"></ul>
+    </section>
+  </section>
+</main>
+
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script src="firebase-config.js"></script>
+<script>
+/*CORE*/
+const pad = n => String(n).padStart(2, '0');
+const ymd = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+const parseYmd = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+const addDays = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+const startOfWeek = d => addDays(d, -((d.getDay() + 6) % 7));
+const round2 = x => Math.round(x * 100) / 100;
+function isoWeek(d) {
+  const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dn = t.getUTCDay() || 7;
+  t.setUTCDate(t.getUTCDate() + 4 - dn);
+  const y0 = new Date(Date.UTC(t.getUTCFullYear(), 0, 1));
+  return Math.ceil(((t - y0) / 864e5 + 1) / 7);
+}
+function periodRange(mode, anchor) {
+  if (mode === 'week') { const a = startOfWeek(anchor); return [a, addDays(a, 6)]; }
+  return [new Date(anchor.getFullYear(), anchor.getMonth(), 1), new Date(anchor.getFullYear(), anchor.getMonth() + 1, 0)];
+}
+const netOfGross = (st, gross) => round2(gross * (1 - st.tax / 100));
+const clientNet = (st, c) => round2(c.price * (c.taxed ? 1 - st.tax / 100 : 1));
+function calc(st, mode, anchor, today) {
+  const [a, b] = periodRange(mode, anchor);
+  const sa = ymd(a), sb = ymd(b);
+  const es = st.entries.filter(e => e.date >= sa && e.date <= sb);
+  const net = round2(es.reduce((s, e) => s + e.net, 0));
+  const target = mode === 'month' ? st.fix : round2(st.fix * 12 / 52);
+  const rest = Math.max(0, round2(target - net));
+  const over = Math.max(0, round2(net - target));
+  const pct = target > 0 ? Math.min(100, net / target * 100) : 100;
+  const needs = st.clients.map(c => {
+    const cn = clientNet(st, c);
+    return { id: c.id, name: c.name, net: cn, n: cn > 0 ? Math.ceil(rest / cn - 1e-9) : 0 };
+  });
+  const fr = st.entries.filter(e => e.kind === 'free');
+  const freeAvg = fr.length ? round2(fr.reduce((s, e) => s + e.net, 0) / fr.length) : 0;
+  const freeNeed = freeAvg > 0 ? Math.ceil(rest / freeAvg - 1e-9) : 0;
+  let weeksLeft = 0, perWeek = 0;
+  const t0 = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  if (mode === 'month' && t0 >= a && t0 <= b) {
+    weeksLeft = Math.max(1, Math.ceil((Math.round((b - t0) / 864e5) + 1) / 7));
+    perWeek = round2(rest / weeksLeft);
+  }
+  return { a, b, es, net, target, rest, over, pct, needs, freeAvg, freeNeed, freeN: fr.length, weeksLeft, perWeek };
+}
+/*ENDCORE*/
+
+(function () {
+  const LS_KEY = 'auftragskompass:v1';
+  const LS_VIEW = 'auftragskompass:view';
+  const PALETTE = ['#2F80ED', '#8B5CF6', '#F2603A', '#18A874', '#E0409A', '#E9B20C', '#0FA5C4', '#7A8699'];
+  const lin = c => { c /= 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
+  const inkOf = hex => { const n = parseInt(hex.slice(1), 16); const L = 0.2126 * lin(n >> 16) + 0.7152 * lin((n >> 8) & 255) + 0.0722 * lin(n & 255); return 1.05 / (L + 0.05) >= (L + 0.05) / 0.0655 ? '#FFFFFF' : '#14213A'; };
+  const $ = id => document.getElementById(id);
+  const uid = () => Math.random().toString(36).slice(2, 9);
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const eurF = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
+  const eurC = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const eur = x => Number.isInteger(round2(x)) ? eurF.format(x) : eurC.format(x);
+  const parseNum = s => {
+    s = String(s).trim().replace(/[€\s]/g, '');
+    if (!s) return NaN;
+    if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.');
+    return parseFloat(s);
+  };
+  const numStr = x => String(x).replace('.', ',');
+  const fmtDay = d => new Intl.DateTimeFormat('de-DE', { day: 'numeric', month: 'short' }).format(d);
+  const fmtMonth = d => new Intl.DateTimeFormat('de-DE', { month: 'long', year: 'numeric' }).format(d);
+
+  let today = new Date();
+  let mode = 'week';
+  let anchor = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  try { const v = localStorage.getItem(LS_VIEW); if (v === 'month' || v === 'week') mode = v; } catch (e) {}
+
+  function defaultState() {
+    const t = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const ws = startOfWeek(t);
+    const wd = (t.getDay() + 6) % 7;
+    const day = i => ymd(addDays(ws, Math.min(i, wd)));
+    const c1 = { id: 'c' + uid(), name: 'Kunde A', price: 450, taxed: false, color: PALETTE[0] };
+    const c2 = { id: 'c' + uid(), name: 'Kunde B', price: 280, taxed: false, color: PALETTE[2] };
+    const st = { fix: 2400, tax: 30, example: true, clients: [c1, c2], entries: [] };
+    st.entries.push({ id: uid(), date: day(0), kind: 'client', clientId: c1.id, label: '', gross: 450, net: 450 });
+    st.entries.push({ id: uid(), date: day(1), kind: 'client', clientId: c2.id, label: '', gross: 280, net: 280 });
+    st.entries.push({ id: uid(), date: day(2), kind: 'free', clientId: '', label: 'Imagefilm Schnitt', gross: 1200, net: netOfGross(st, 1200) });
+    return st;
+  }
+  function normalize(s) {
+    const st = {
+      fix: Number(s.fix) >= 0 ? Number(s.fix) : 0,
+      tax: Number(s.tax) >= 0 && Number(s.tax) < 100 ? Number(s.tax) : 30,
+      example: !!s.example,
+      clients: Array.isArray(s.clients) ? s.clients.filter(c => c && c.id).map((c, i) => ({ id: String(c.id), name: String(c.name || 'Kunde'), price: Number(c.price) || 0, taxed: !!c.taxed, color: /^#[0-9a-fA-F]{6}$/.test(c.color || '') ? c.color : PALETTE[i % PALETTE.length] })) : [],
+      entries: Array.isArray(s.entries) ? s.entries.filter(e => e && e.id && /^\d{4}-\d{2}-\d{2}$/.test(e.date)).map(e => ({ id: String(e.id), date: e.date, kind: e.kind === 'client' ? 'client' : 'free', clientId: String(e.clientId || ''), label: String(e.label || ''), gross: Number(e.gross) || 0, net: Number(e.net) || 0 })) : []
+    };
+    return st;
+  }
+
+  let state;
+  try { const raw = localStorage.getItem(LS_KEY); state = raw ? normalize(JSON.parse(raw)) : null; } catch (e) { state = null; }
+  if (!state) state = defaultState();
+
+  /* Speicherung: immer lokal (localStorage). Mit Firebase zusätzlich Anmeldung und Firestore. */
+  const FB_VERSION = '10.14.1';
+  const cloud = { on: false, authChecked: false, user: null, auth: null, a: null, db: null, fs: null, unsub: [], settings: null, months: {}, settingsLoaded: false, monthsLoaded: false, meta: { s: { pending: false, cache: true }, m: { pending: false, cache: true } } };
+  let timer = null, dirtySettings = false;
+  const dirtyMonths = new Set();
+  const monthKey = d => d.slice(0, 7);
+  const touchMonth = d => dirtyMonths.add(monthKey(d));
+  const touchAll = () => { dirtySettings = true; state.entries.forEach(e => touchMonth(e.date)); };
+  const canon = st => { const n = normalize(st); n.entries.sort((x, y) => (x.id < y.id ? -1 : 1)); return JSON.stringify(n); };
+
+  function statusText() {
+    if (!cloud.on) return 'Nur auf diesem Gerät';
+    if (!cloud.authChecked) return 'Verbinde …';
+    if (!cloud.user) return 'Nicht angemeldet';
+    const pending = cloud.meta.s.pending || cloud.meta.m.pending;
+    const cache = cloud.meta.s.cache || cloud.meta.m.cache;
+    if (pending) return navigator.onLine ? 'Synchronisiert …' : 'Offline, wird später abgeglichen';
+    if (cache) return navigator.onLine ? 'Verbinde …' : 'Offline';
+    return 'Synchronisiert';
+  }
+  function updateStatus() {
+    const t = statusText();
+    $('sync').textContent = t;
+    const el = $('sync-state'); if (el) el.textContent = t;
+    $('signin-hint').hidden = !(cloud.on && cloud.authChecked && !cloud.user);
+  }
+  let lastErr = 0;
+  function onErr(e) {
+    if (Date.now() - lastErr < 4000) return;
+    lastErr = Date.now();
+    showToast(e && e.code === 'permission-denied' ? 'Keine Berechtigung. Prüfe die Firestore-Regeln.' : 'Synchronisierung fehlgeschlagen. Die Daten liegen noch auf diesem Gerät.', false);
+  }
+  function save() {
+    try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch (e) {}
+    if (cloud.user) { clearTimeout(timer); timer = setTimeout(flush, 400); }
+  }
+  function flush() {
+    if (!cloud.on || !cloud.user) return;
+    const { doc, setDoc } = cloud.fs, uid = cloud.user.uid;
+    if (dirtySettings) {
+      dirtySettings = false;
+      setDoc(doc(cloud.db, 'users', uid, 'meta', 'settings'), { fix: state.fix, tax: state.tax, example: state.example, clients: JSON.parse(JSON.stringify(state.clients)) }).catch(onErr);
+    }
+    Array.from(dirtyMonths).forEach(k => {
+      const list = state.entries.filter(e => monthKey(e.date) === k);
+      setDoc(doc(cloud.db, 'users', uid, 'months', k), { entries: JSON.parse(JSON.stringify(list)) }).catch(onErr);
+    });
+    dirtyMonths.clear();
+    updateStatus();
+  }
+  function onCloudData() {
+    if (!cloud.settingsLoaded || !cloud.monthsLoaded) return;
+    if (dirtySettings || dirtyMonths.size) return;
+    if (!cloud.settings) {
+      /* Die Cloud ist leer (vom Server bestätigt): lokale Daten hochladen. */
+      if (!cloud.meta.s.cache && !cloud.meta.m.cache) { touchAll(); flush(); }
+      return;
+    }
+    const entries = [];
+    Object.keys(cloud.months).forEach(k => entries.push(...cloud.months[k]));
+    const next = normalize(Object.assign({}, cloud.settings, { entries }));
+    if (canon(next) === canon(state)) return;
+    state = next;
+    try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch (e) {}
+    renderAll(!!(document.activeElement && $('settings').contains(document.activeElement)));
+  }
+  function detach() {
+    cloud.unsub.forEach(u => { try { u(); } catch (e) {} });
+    cloud.unsub = []; cloud.settings = null; cloud.months = {};
+    cloud.settingsLoaded = false; cloud.monthsLoaded = false;
+    cloud.meta = { s: { pending: false, cache: true }, m: { pending: false, cache: true } };
+  }
+  function attach(uid) {
+    detach();
+    dirtySettings = false; dirtyMonths.clear();
+    const { doc, collection, onSnapshot } = cloud.fs;
+    const opt = { includeMetadataChanges: true };
+    cloud.unsub.push(onSnapshot(doc(cloud.db, 'users', uid, 'meta', 'settings'), opt, snap => {
+      cloud.settings = snap.exists() ? snap.data() : null;
+      cloud.settingsLoaded = true;
+      cloud.meta.s = { pending: snap.metadata.hasPendingWrites, cache: snap.metadata.fromCache };
+      onCloudData(); updateStatus();
+    }, onErr));
+    cloud.unsub.push(onSnapshot(collection(cloud.db, 'users', uid, 'months'), opt, snap => {
+      cloud.months = {};
+      snap.docs.forEach(d => { const e = d.data().entries; if (Array.isArray(e)) cloud.months[d.id] = e; });
+      cloud.monthsLoaded = true;
+      cloud.meta.m = { pending: snap.metadata.hasPendingWrites, cache: snap.metadata.fromCache };
+      onCloudData(); updateStatus();
+    }, onErr));
+  }
+  async function startCloud() {
+    const cfg = window.FIREBASE_CONFIG;
+    if (!cfg || !cfg.apiKey || /^DEIN/.test(cfg.apiKey)) { updateStatus(); return; }
+    try {
+      const base = 'https://www.gstatic.com/firebasejs/' + FB_VERSION + '/';
+      const [appM, authM, fsM] = await Promise.all([import(base + 'firebase-app.js'), import(base + 'firebase-auth.js'), import(base + 'firebase-firestore.js')]);
+      const app = appM.initializeApp(cfg);
+      cloud.auth = authM.getAuth(app); cloud.a = authM;
+      try { cloud.db = fsM.initializeFirestore(app, { localCache: fsM.persistentLocalCache({ tabManager: fsM.persistentMultipleTabManager() }) }); }
+      catch (e) { cloud.db = fsM.getFirestore(app); }
+      cloud.fs = fsM; cloud.on = true;
+      updateStatus();
+      authM.getRedirectResult(cloud.auth).catch(() => {});
+      authM.onAuthStateChanged(cloud.auth, u => {
+        cloud.user = u; cloud.authChecked = true;
+        if (u) attach(u.uid); else detach();
+        updateStatus();
+        const st = $('settings');
+        if (!st.hidden && !st.contains(document.activeElement)) renderSettings();
+      });
+    } catch (e) { cloud.on = false; updateStatus(); }
+  }
+  async function signIn() {
+    if (!cloud.on) return;
+    const a = cloud.a, provider = new a.GoogleAuthProvider();
+    try { await a.signInWithPopup(cloud.auth, provider); }
+    catch (e) {
+      if (e.code === 'auth/popup-blocked' || e.code === 'auth/operation-not-supported-in-this-environment') {
+        try { await a.signInWithRedirect(cloud.auth, provider); } catch (e2) { showToast('Anmeldung fehlgeschlagen (' + (e2.code || 'Fehler') + ')', false); }
+      } else if (e.code !== 'auth/popup-closed-by-user' && e.code !== 'auth/cancelled-popup-request') {
+        showToast('Anmeldung fehlgeschlagen (' + (e.code || 'Fehler') + ')', false);
+      }
+    }
+  }
+  function signOutNow() { if (cloud.on) cloud.a.signOut(cloud.auth).catch(() => {}); }
+  function syncSection() {
+    if (!cloud.on) return '<div class="sync-box"><h2>Synchronisierung</h2><p class="note">Noch nicht eingerichtet. Die Daten bleiben auf diesem Gerät. Die Einrichtung mit Firebase steht in der README.</p></div>';
+    if (!cloud.user) return '<div class="sync-box"><h2>Synchronisierung</h2><p class="note">Melde dich an, damit sich Mac und Pixel abgleichen.</p><div class="row-actions"><button class="btn" type="button" data-act="signin">Mit Google anmelden</button></div></div>';
+    return `<div class="sync-box"><h2>Synchronisierung</h2><p class="note">Angemeldet als <b>${esc(cloud.user.email || cloud.user.displayName || 'Konto')}</b>. <span id="sync-state">${esc(statusText())}</span></p><div class="row-actions"><button class="btn" type="button" data-act="signout">Abmelden</button></div></div>`;
+  }
+  function registerSW() {
+    if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+
+  /* Darstellung */
+  const colorOf = i => PALETTE[i % PALETTE.length];
+  const fmtDate = s => new Intl.DateTimeFormat('de-DE', { day: 'numeric', month: 'short', year: 'numeric' }).format(parseYmd(s));
+  function cardHtml(e, st) {
+    const meta = e.net !== e.gross ? `<span class="num">${eur(e.gross)} − ${st.tax} % Steuer</span>` : '';
+    const title = e.label ? esc(e.label) : (e.kind === 'client' ? 'Auftrag' : 'Projekt');
+    return `<li class="card"><div class="card-top"><button class="cname-btn" type="button" data-act="edit-name" data-id="${e.id}" title="Namen ändern">${title}</button><span class="amt num">${eur(e.net)}</span><button class="x" type="button" data-act="del" data-id="${e.id}" aria-label="Eintrag löschen"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="m2 2 8 8M10 2l-8 8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button></div><div class="card-meta"><label class="datebtn" title="Datum ändern"><span class="num">${fmtDate(e.date)}</span><input class="date-hid" type="date" id="d-${e.id}" data-f="edate" data-id="${e.id}" value="${e.date}" aria-label="Datum ändern"></label>${meta}</div></li>`;
+  }
+  const sortEntries = es => es.slice().sort((x, y) => y.date.localeCompare(x.date) || y.id.localeCompare(x.id));
+
+  function renderPeriod(r) {
+    const [a, b] = [r.a, r.b];
+    if (mode === 'week') {
+      $('p-title').textContent = 'KW ' + isoWeek(a);
+      $('p-range').textContent = fmtDay(a) + ' – ' + fmtDay(b) + ' ' + b.getFullYear();
+    } else {
+      $('p-title').textContent = fmtMonth(a);
+      $('p-range').textContent = '';
+    }
+    $('m-week').setAttribute('aria-pressed', mode === 'week');
+    $('m-month').setAttribute('aria-pressed', mode === 'month');
+    $('btn-today').textContent = mode === 'week' ? 'Diese Woche' : 'Dieser Monat';
+  }
+  function renderHero(r) {
+    const st = state;
+    const label = mode === 'week' ? 'Wochenziel' : 'Fixkosten';
+    const basis = mode === 'week' ? ` (Fixkosten ${eur(st.fix)} ÷ 4,33 Wochen)` : '';
+    let left, right;
+    if (r.target <= 0) {
+      left = `<p class="eyebrow">Fixkosten</p><p class="big">Noch nicht eingetragen</p><p class="sub">Trage deine monatlichen Fixkosten in den Einstellungen ein.</p>`;
+      right = '';
+    } else if (r.rest === 0) {
+      left = `<p class="eyebrow">${label} gedeckt</p><p class="big ok num">${r.over > 0 ? '+ ' + eur(r.over) : 'Geschafft'}</p><div class="bar ok"><span style="width:100%"></span></div><p class="sub num">${eur(r.net)} netto verdient, Ziel ${eur(r.target)}${basis}</p>`;
+      right = `<p class="covered">Du bist ${r.over > 0 ? 'über' : 'auf'} dem ${label === 'Wochenziel' ? 'Wochenziel' : 'Monatsziel'}. Weitere Aufträge sind Rücklage.</p>`;
+    } else {
+      left = `<p class="eyebrow">Noch offen bis zu den ${mode === 'week' ? 'Wochenzielen' : 'Fixkosten'}</p><p class="big num">${eur(r.rest)}</p><div class="bar"><span style="width:${r.pct.toFixed(1)}%"></span></div><p class="sub num">${eur(r.net)} netto verdient von ${eur(r.target)}${basis}</p>`;
+      if (r.weeksLeft) left += `<p class="sub num">Noch ${r.weeksLeft} ${r.weeksLeft === 1 ? 'Woche' : 'Wochen'} im Monat: ${eur(r.perWeek)} pro Woche</p>`;
+      const items = r.needs.filter(n => n.net > 0).map(n => { const cl = st.clients.find(c => c.id === n.id); return `<li class="need"><b class="num">${n.n}×</b><span class="nm"><span class="dot" style="background:${cl ? cl.color : '#6B7A90'}"></span>${esc(n.name)}</span><small class="num">je ${eur(n.net)} netto</small></li>`; });
+      if (r.freeAvg > 0) items.push(`<li class="need"><b class="num">${r.freeNeed}×</b><span class="nm"><span class="dot" style="background:#6B7A90"></span>Sonstige Projekte</span><small class="num">Ø ${eur(r.freeAvg)} netto</small></li>`);
+      right = `<div><p class="eyebrow">So viele Aufträge fehlen noch</p>${items.length ? `<ul class="needs">${items.join('')}</ul>` : '<p class="sub">Lege einen festen Kunden mit Preis an, dann erscheint hier die Anzahl.</p>'}</div>`;
+    }
+    $('hero').innerHTML = `<div>${left}</div>${right}`;
+  }
+  function renderCols(r) {
+    const st = state;
+    const drafts = {};
+    document.querySelectorAll('.cl-name').forEach(i => { drafts[i.dataset.id] = i.value; });
+    const html = st.clients.map(c => {
+      const es = sortEntries(r.es.filter(e => e.kind === 'client' && e.clientId === c.id));
+      const sum = round2(es.reduce((s, e) => s + e.net, 0));
+      const cn = clientNet(st, c);
+      return `<section class="col" style="--c:${c.color};--ink:${inkOf(c.color)}"><div class="col-h"><h2>${esc(c.name)}</h2><span class="count num">${es.length}</span></div><p class="col-sum num">${eur(sum)} netto in diesem Zeitraum</p><input class="cl-name" type="text" id="cl-${c.id}" data-id="${c.id}" placeholder="Projektname (optional)" maxlength="60" aria-label="Projektname für den nächsten Auftrag (optional)"><button class="add" type="button" data-act="add" data-id="${c.id}"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M7 2v10M2 7h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Auftrag <span class="num">${eur(cn)}</span></button>${es.length ? `<ul class="cards">${es.map(e => cardHtml(e, st)).join('')}</ul>` : `<p class="empty">Noch kein Auftrag.</p>`}</section>`;
+    }).join('');
+    $('cols').innerHTML = html;
+    Object.keys(drafts).forEach(id => { const i = $('cl-' + id); if (i) i.value = drafts[id]; });
+    const fe = sortEntries(r.es.filter(e => e.kind === 'free'));
+    $('free-count').textContent = fe.length;
+    $('free-sum').textContent = eur(round2(fe.reduce((s, e) => s + e.net, 0))) + ' netto nach ' + st.tax + ' % Steuer';
+    $('free-list').innerHTML = fe.length ? fe.map(e => cardHtml(e, st)).join('') : '<li class="empty">Noch kein Projekt.</li>';
+    updatePreview();
+  }
+  function renderSettings() {
+    const st = state;
+    const rows = st.clients.map((c, i) => `<div class="crow"><div class="field"><label for="cn-${c.id}">Kunde</label><input id="cn-${c.id}" type="text" data-f="cname" data-id="${c.id}" value="${esc(c.name)}" maxlength="40"></div><div class="field"><label for="cp-${c.id}">Preis pro Auftrag</label><div class="suffix" data-s="€"><input id="cp-${c.id}" class="num" type="text" inputmode="decimal" data-f="cprice" data-id="${c.id}" value="${numStr(c.price)}"></div></div><label class="chk" for="ct-${c.id}"><input id="ct-${c.id}" type="checkbox" data-f="ctax" data-id="${c.id}" ${c.taxed ? 'checked' : ''}>${st.tax} % Steuer abziehen</label><button class="btn del" type="button" data-act="cdel" data-id="${c.id}" aria-label="Kunde ${esc(c.name)} entfernen">Entfernen</button><div class="swatches" role="radiogroup" aria-label="Farbe für ${esc(c.name)}">${PALETTE.map((col, k) => `<button type="button" class="sw" style="background:${col}" role="radio" aria-checked="${c.color === col}" data-act="ccolor" data-id="${c.id}" data-color="${col}" aria-label="Farbe ${k + 1}"></button>`).join('')}</div></div>`).join('');
+    $('settings').innerHTML = `<h2>Einstellungen</h2>${syncSection()}<div class="grid2"><div class="field"><label for="set-fix">Fixkosten pro Monat</label><div class="suffix" data-s="€"><input id="set-fix" class="num" type="text" inputmode="decimal" data-f="fix" value="${numStr(st.fix)}"></div></div><div class="field"><label for="set-tax">Einkommensteuer auf Sonstige Projekte</label><div class="suffix" data-s="%"><input id="set-tax" class="num" type="text" inputmode="decimal" data-f="tax" value="${numStr(st.tax)}"></div></div></div><div class="clients"><h2>Feste Kunden</h2>${rows || '<p class="note">Noch kein fester Kunde.</p>'}<div class="row-actions"><button class="btn" type="button" data-act="cadd">+ Kunden hinzufügen</button></div><p class="note">Feste Kunden zahlen immer denselben Preis. Die Steuer wird dort nur abgezogen, wenn du es oben ankreuzt. Bei Sonstigen Projekten wird sie immer abgezogen. Eine geänderte Steuer gilt für neue Einträge, bestehende Einträge behalten ihren Betrag.</p></div>${st.example ? '<div class="row-actions"><button class="btn danger" type="button" data-act="clear-example">Beispieleinträge entfernen</button></div>' : ''}`;
+  }
+  function renderAll(skipSettings) {
+    const r = calc(state, mode, anchor, new Date());
+    renderPeriod(r); renderHero(r); renderCols(r);
+    const tr = $('top-rest');
+    tr.textContent = r.target <= 0 ? '' : (r.rest === 0 ? 'Gedeckt' : 'Noch ' + eur(r.rest));
+    tr.classList.toggle('ok', r.target > 0 && r.rest === 0);
+    $('example-hint').hidden = !state.example;
+    if (!skipSettings) renderSettings();
+  }
+
+  /* Aktionen */
+  function entryDate() {
+    const t = new Date(); const n = new Date(t.getFullYear(), t.getMonth(), t.getDate());
+    const [a, b] = periodRange(mode, anchor);
+    return ymd(n >= a && n <= b ? n : a);
+  }
+  function addClientEntry(id) {
+    const c = state.clients.find(x => x.id === id); if (!c) return;
+    const net = clientNet(state, c);
+    const inp = $('cl-' + id);
+    const label = inp ? inp.value.trim() : '';
+    if (inp) inp.value = '';
+    const e = { id: uid(), date: entryDate(), kind: 'client', clientId: id, label, gross: c.price, net };
+    state.entries.push(e); touchMonth(e.date); save(); renderAll(true);
+  }
+  function addFree(ev) {
+    ev.preventDefault();
+    const gross = parseNum($('fr-amt').value);
+    if (!(gross > 0)) { $('fr-prev').textContent = 'Bitte eine Summe größer als 0 eingeben.'; $('fr-amt').focus(); return; }
+    const e = { id: uid(), date: entryDate(), kind: 'free', clientId: '', label: $('fr-label').value.trim(), gross: round2(gross), net: netOfGross(state, gross) };
+    state.entries.push(e); touchMonth(e.date); save();
+    $('fr-amt').value = ''; $('fr-label').value = '';
+    renderAll(true);
+    $('fr-amt').focus();
+  }
+  function updatePreview() {
+    const g = parseNum($('fr-amt').value);
+    $('fr-prev').innerHTML = g > 0 ? `<b>${eur(netOfGross(state, g))}</b> netto nach ${state.tax} % Steuer` : `Davon gehen ${state.tax} % Steuer ab.`;
+  }
+  let toastTimer = null, lastDeleted = null;
+  function showToast(msg, undo) {
+    const t = $('toast');
+    t.innerHTML = `<span>${esc(msg)}</span>` + (undo ? '<button type="button" data-act="undo">Rückgängig</button>' : '');
+    t.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { t.hidden = true; }, 6000);
+  }
+  function delEntry(id) {
+    const i = state.entries.findIndex(e => e.id === id); if (i < 0) return;
+    lastDeleted = state.entries.splice(i, 1)[0];
+    touchMonth(lastDeleted.date); save(); renderAll(true);
+    showToast('Eintrag gelöscht', true);
+  }
+  function undo() {
+    if (!lastDeleted) return;
+    state.entries.push(lastDeleted); touchMonth(lastDeleted.date); lastDeleted = null;
+    save(); renderAll(true); $('toast').hidden = true;
+  }
+  function shift(dir) {
+    if (mode === 'week') anchor = addDays(anchor, 7 * dir);
+    else anchor = new Date(anchor.getFullYear(), anchor.getMonth() + dir, 1);
+    renderAll(true);
+  }
+  function toggleSettings(open) {
+    const p = $('settings');
+    const show = open === undefined ? p.hidden : open;
+    p.hidden = !show;
+    $('btn-settings').setAttribute('aria-expanded', show);
+    if (show) { renderSettings(); p.scrollIntoView({ block: 'start', behavior: 'smooth' }); }
+  }
+
+  function editName(btn) {
+    const id = btn.dataset.id;
+    const e = state.entries.find(x => x.id === id); if (!e) return;
+    const inp = document.createElement('input');
+    inp.type = 'text'; inp.className = 'cname'; inp.maxLength = 60; inp.value = e.label;
+    inp.placeholder = e.kind === 'client' ? 'Auftrag' : 'Projekt';
+    inp.setAttribute('aria-label', 'Name');
+    btn.replaceWith(inp);
+    inp.focus(); inp.select();
+    let done = false;
+    const finish = keep => {
+      if (done) return; done = true;
+      if (keep) { e.label = inp.value.trim().slice(0, 60); touchMonth(e.date); save(); }
+      renderAll(true);
+    };
+    inp.addEventListener('blur', () => finish(true));
+    inp.addEventListener('keydown', ev => {
+      if (ev.key === 'Enter') { ev.preventDefault(); finish(true); }
+      else if (ev.key === 'Escape') { ev.preventDefault(); finish(false); }
+    });
+  }
+  document.addEventListener('click', ev => {
+    const t = ev.target;
+    if (t.classList && t.classList.contains('date-hid') && t.showPicker) { try { t.showPicker(); } catch (err) {} }
+  });
+
+  document.addEventListener('click', ev => {
+    const b = ev.target.closest('[data-act]'); if (!b) return;
+    const act = b.dataset.act, id = b.dataset.id;
+    if (act === 'mode') {
+      mode = b.dataset.mode;
+      try { localStorage.setItem(LS_VIEW, mode); } catch (e) {}
+      renderAll(true);
+    }
+    else if (act === 'prev') shift(-1);
+    else if (act === 'next') shift(1);
+    else if (act === 'today') { const t = new Date(); anchor = new Date(t.getFullYear(), t.getMonth(), t.getDate()); renderAll(true); }
+    else if (act === 'settings') toggleSettings();
+    else if (act === 'settings-open') toggleSettings(true);
+    else if (act === 'edit-name') editName(b);
+    else if (act === 'add') addClientEntry(id);
+    else if (act === 'del') delEntry(id);
+    else if (act === 'undo') undo();
+    else if (act === 'cadd') {
+      const used = state.clients.map(c => c.color);
+      const free = PALETTE.find(col => used.indexOf(col) < 0) || PALETTE[state.clients.length % PALETTE.length];
+      state.clients.push({ id: 'c' + uid(), name: 'Neuer Kunde', price: 300, taxed: false, color: free });
+      dirtySettings = true; save(); renderAll();
+      const last = state.clients[state.clients.length - 1];
+      const inp = $('cn-' + last.id); if (inp) { inp.focus(); inp.select(); }
+    }
+    else if (act === 'signin') signIn();
+    else if (act === 'signout') signOutNow();
+    else if (act === 'ccolor') {
+      const c = state.clients.find(x => x.id === id);
+      if (c) { c.color = b.dataset.color; dirtySettings = true; save(); renderAll(); }
+    }
+    else if (act === 'cdel') {
+      const c = state.clients.find(x => x.id === id); if (!c) return;
+      state.entries.forEach(e => { if (e.clientId === id) { e.kind = 'free'; e.clientId = ''; e.label = e.label || c.name; touchMonth(e.date); } });
+      state.clients = state.clients.filter(x => x.id !== id);
+      dirtySettings = true; save(); renderAll();
+      showToast('Kunde entfernt. Seine Aufträge stehen unter Sonstige Projekte.', false);
+    }
+    else if (act === 'clear-example') {
+      state.entries.forEach(e => touchMonth(e.date));
+      state.entries = []; state.example = false;
+      dirtySettings = true; save(); renderAll();
+    }
+  });
+  document.addEventListener('change', ev => {
+    const t = ev.target, f = t.dataset && t.dataset.f; if (!f) return;
+    const id = t.dataset.id;
+    if (f === 'fix') { const v = parseNum(t.value); if (v >= 0) state.fix = v; t.value = numStr(state.fix); dirtySettings = true; }
+    else if (f === 'tax') { const v = parseNum(t.value); if (v >= 0 && v < 100) state.tax = v; t.value = numStr(state.tax); dirtySettings = true; }
+    else if (f === 'cname') { const c = state.clients.find(x => x.id === id); if (c) { c.name = t.value.trim() || 'Kunde'; t.value = c.name; dirtySettings = true; } }
+    else if (f === 'cprice') { const c = state.clients.find(x => x.id === id); const v = parseNum(t.value); if (c && v >= 0) { c.price = round2(v); dirtySettings = true; } if (c) t.value = numStr(c.price); }
+    else if (f === 'ctax') { const c = state.clients.find(x => x.id === id); if (c) { c.taxed = t.checked; dirtySettings = true; } }
+    else if (f === 'elabel') {
+      const e = state.entries.find(x => x.id === id);
+      if (e) { e.label = t.value.trim().slice(0, 60); touchMonth(e.date); save(); }
+      return;
+    }
+    else if (f === 'edate') {
+      const e = state.entries.find(x => x.id === id);
+      if (e && /^\d{4}-\d{2}-\d{2}$/.test(t.value)) { touchMonth(e.date); e.date = t.value; touchMonth(e.date); }
+      else if (e) { t.value = e.date; return; }
+    }
+    save();
+    renderAll(f !== 'tax');
+  });
+  document.addEventListener('keydown', ev => {
+    if (ev.key === 'Enter' && ev.target.classList && ev.target.classList.contains('cl-name')) { ev.preventDefault(); addClientEntry(ev.target.dataset.id); }
+  });
+  $('free-form').addEventListener('submit', addFree);
+  $('fr-amt').addEventListener('input', updatePreview);
+
+  renderAll();
+  updateStatus();
+  startCloud();
+  registerSW();
+  window.addEventListener('online', updateStatus);
+  window.addEventListener('offline', updateStatus);
+})();
+</script>
+</body>
+</html>
