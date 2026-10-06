@@ -466,7 +466,8 @@ function calc(st, mode, anchor, today) {
   }
   async function startCloud() {
     const cfg = window.FIREBASE_CONFIG;
-    if (!cfg || !cfg.apiKey || /^DEIN/.test(cfg.apiKey)) { updateStatus(); return; }
+    if (!cfg) { cloud.cfgNote = 'Die Datei firebase-config.js wurde nicht geladen.'; updateStatus(); return; }
+    if (!cfg.apiKey || /^DEIN/.test(cfg.apiKey)) { cloud.cfgNote = 'In firebase-config.js stehen noch die Platzhalter.'; updateStatus(); return; }
     try {
       const base = 'https://www.gstatic.com/firebasejs/' + FB_VERSION + '/';
       const [appM, authM, fsM] = await Promise.all([import(base + 'firebase-app.js'), import(base + 'firebase-auth.js'), import(base + 'firebase-firestore.js')]);
@@ -505,7 +506,7 @@ function calc(st, mode, anchor, today) {
   function signOutNow() { if (cloud.on) cloud.a.signOut(cloud.auth).catch(() => {}); }
   function syncSection() {
     if (!cloud.on && cloud.error) return `<div class="sync-box"><h2>Synchronisierung</h2><p class="note">Firebase konnte nicht gestartet werden. Meldung: <b>${esc(cloud.error)}</b>. Prüfe die Internetverbindung und ob ein Werbeblocker oder eine Erweiterung gstatic.com blockiert. Die Daten bleiben solange auf diesem Gerät.</p></div>`;
-    if (!cloud.on) return '<div class="sync-box"><h2>Synchronisierung</h2><p class="note">Noch nicht eingerichtet. Die Daten bleiben auf diesem Gerät. Die Einrichtung mit Firebase steht in der README.</p></div>';
+    if (!cloud.on) return `<div class="sync-box"><h2>Synchronisierung</h2><p class="note">Noch nicht eingerichtet. ${cloud.cfgNote ? esc(cloud.cfgNote) + ' Lade die Seite mit Cmd+Shift+R neu. Hilft das nicht, steht in der README, wie du die Werte einträgst.' : 'Die Einrichtung mit Firebase steht in der README.'} Die Daten bleiben solange auf diesem Gerät.</p></div>`;
     if (!cloud.user) return '<div class="sync-box"><h2>Synchronisierung</h2><p class="note">Melde dich an, damit sich Mac und Pixel abgleichen.</p><div class="row-actions"><button class="btn" type="button" data-act="signin">Mit Google anmelden</button></div></div>';
     return `<div class="sync-box"><h2>Synchronisierung</h2><p class="note">Angemeldet als <b>${esc(cloud.user.email || cloud.user.displayName || 'Konto')}</b>. <span id="sync-state">${esc(statusText())}</span></p><div class="row-actions"><button class="btn" type="button" data-act="signout">Abmelden</button></div></div>`;
   }

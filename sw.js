@@ -1,6 +1,6 @@
 /* Service Worker: App-Dateien offline verfügbar machen.
    Anfragen an Firestore und Anmeldung laufen direkt durch. */
-const CACHE = 'auftragskompass-v1';
+const CACHE = 'auftragskompass-v2';
 const SHELL = [
   './', 'index.html', 'manifest.webmanifest', 'firebase-config.js',
   'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png',
@@ -41,8 +41,9 @@ self.addEventListener('fetch', e => {
     return;
   }
 
+  /* 'no-cache': bei jedem Aufruf bei GitHub nachfragen, damit geänderte Dateien sofort ankommen */
   e.respondWith(
-    fetch(req)
+    fetch(req, { cache: 'no-cache' })
       .then(res => store(req, res))
       .catch(() => caches.match(req).then(hit => hit || (req.mode === 'navigate' ? caches.match('index.html') : undefined)))
   );
