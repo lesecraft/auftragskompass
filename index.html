@@ -384,7 +384,7 @@ function calc(st, mode, anchor, today) {
   const canon = st => { const n = normalize(st); n.entries.sort((x, y) => (x.id < y.id ? -1 : 1)); return JSON.stringify(n); };
 
   function statusText() {
-    if (!cloud.on) return 'Nur auf diesem Gerät';
+    if (!cloud.on) return cloud.error ? 'Firebase nicht erreichbar' : 'Nur auf diesem Gerät';
     if (!cloud.authChecked) return 'Verbinde …';
     if (!cloud.user) return 'Nicht angemeldet';
     const pending = cloud.meta.s.pending || cloud.meta.m.pending;
@@ -484,7 +484,11 @@ function calc(st, mode, anchor, today) {
         const st = $('settings');
         if (!st.hidden && !st.contains(document.activeElement)) renderSettings();
       });
-    } catch (e) { cloud.on = false; updateStatus(); }
+    } catch (e) {
+      cloud.on = false; cloud.error = (e && (e.code || e.message)) || 'unbekannt';
+      updateStatus();
+      const st = $('settings'); if (!st.hidden) renderSettings();
+    }
   }
   async function signIn() {
     if (!cloud.on) return;
@@ -500,6 +504,7 @@ function calc(st, mode, anchor, today) {
   }
   function signOutNow() { if (cloud.on) cloud.a.signOut(cloud.auth).catch(() => {}); }
   function syncSection() {
+    if (!cloud.on && cloud.error) return `<div class="sync-box"><h2>Synchronisierung</h2><p class="note">Firebase konnte nicht gestartet werden. Meldung: <b>${esc(cloud.error)}</b>. Prüfe die Internetverbindung und ob ein Werbeblocker oder eine Erweiterung gstatic.com blockiert. Die Daten bleiben solange auf diesem Gerät.</p></div>`;
     if (!cloud.on) return '<div class="sync-box"><h2>Synchronisierung</h2><p class="note">Noch nicht eingerichtet. Die Daten bleiben auf diesem Gerät. Die Einrichtung mit Firebase steht in der README.</p></div>';
     if (!cloud.user) return '<div class="sync-box"><h2>Synchronisierung</h2><p class="note">Melde dich an, damit sich Mac und Pixel abgleichen.</p><div class="row-actions"><button class="btn" type="button" data-act="signin">Mit Google anmelden</button></div></div>';
     return `<div class="sync-box"><h2>Synchronisierung</h2><p class="note">Angemeldet als <b>${esc(cloud.user.email || cloud.user.displayName || 'Konto')}</b>. <span id="sync-state">${esc(statusText())}</span></p><div class="row-actions"><button class="btn" type="button" data-act="signout">Abmelden</button></div></div>`;
